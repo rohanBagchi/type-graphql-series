@@ -4,6 +4,12 @@ import Express from "express"
 import { buildSchema } from "type-graphql"
 import { createConnection } from 'typeorm'
 import { RegisterResolver } from './modules/user/Register'
+import session from 'express-session';
+import connectRedis from 'connect-redis';
+import { redis } from "./redis"
+import cors from 'cors';
+
+const RedisStore = connectRedis(session);
 
 const main = async () => {
     await createConnection();
@@ -12,10 +18,33 @@ const main = async () => {
         resolvers: [ RegisterResolver ],
     });
     const apolloServer = new ApolloServer({
-        schema
+        schema,
+        context: ({ req }) => ({ req })
     });
 
+    const sessionOption: session.SessionOptions = {
+        store: new RedisStore({
+          client: redis as any,
+        }),
+        name: "qid",
+        secret: "session secret 12",
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 1000 * 60 * 60 * 24 * 7 * 365, // 7 years
+        },
+    };
+
     const app = Express();
+
+    app.use(session(sessionOption));
+    app.use(cors({
+        credentials: true,
+        origin: 'http://localhost:3000'
+    }));
+
     apolloServer.applyMiddleware({ app });
 
     app
