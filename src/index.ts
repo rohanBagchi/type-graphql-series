@@ -17,7 +17,13 @@ const main = async () => {
     await createConnection();
 
     const schema = await buildSchema({
-        resolvers: [ RegisterResolver, LoginResolver, MeResolver ],
+        resolvers: [RegisterResolver, LoginResolver, MeResolver],
+        authChecker: ({ context: { req } }) => {
+            // here we can read the user from context
+            // and check his permission in the db against the `roles` argument
+            // that comes from the `@Authorized` decorator, eg. ["ADMIN", "MODERATOR"]
+            return !!req.session.userId; // or false if access is denied
+        }
     });
     const apolloServer = new ApolloServer({
         schema,
@@ -26,16 +32,16 @@ const main = async () => {
 
     const sessionOption: session.SessionOptions = {
         store: new RedisStore({
-          client: redis as any,
+            client: redis as any,
         }),
         name: "qid",
         secret: "session secret 12",
         resave: false,
         saveUninitialized: false,
         cookie: {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          maxAge: 1000 * 60 * 60 * 24 * 7 * 365, // 7 years
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 1000 * 60 * 60 * 24 * 7 * 365, // 7 years
         },
     };
 
@@ -50,10 +56,10 @@ const main = async () => {
     apolloServer.applyMiddleware({ app });
 
     app
-    .listen(
-        4000, 
-        () => console.log('server started on http://localhost:4000')
-    );
+        .listen(
+            4000,
+            () => console.log('server started on http://localhost:4000')
+        );
 };
 
 main();
