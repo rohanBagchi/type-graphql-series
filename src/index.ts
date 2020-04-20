@@ -10,6 +10,7 @@ import connectRedis from 'connect-redis';
 import { redis } from "./redis"
 import cors from 'cors';
 import { MeResolver } from "./modules/user/Me"
+import { ConfirmUserResolver } from "./modules/user/ConfirmUser"
 
 const RedisStore = connectRedis(session);
 
@@ -17,7 +18,7 @@ const main = async () => {
     await createConnection();
 
     const schema = await buildSchema({
-        resolvers: [RegisterResolver, LoginResolver, MeResolver],
+        resolvers: [RegisterResolver, LoginResolver, MeResolver, ConfirmUserResolver],
         authChecker: ({ context: { req } }) => {
             // here we can read the user from context
             // and check his permission in the db against the `roles` argument
@@ -58,7 +59,9 @@ const main = async () => {
     app
         .listen(
             4000,
-            () => console.log('server started on http://localhost:4000')
+            () => {
+                console.log('server started on http://localhost:4000');
+            }
         );
 };
 
